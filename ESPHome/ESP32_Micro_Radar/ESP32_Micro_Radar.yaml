@@ -4,7 +4,6 @@ wifi:
   power_save_mode: NONE
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
-    ssid: "$friendly_name Fallback"
 
 captive_portal:
 
@@ -102,13 +101,30 @@ sensor:
         name: g8 move energy
       still_energy:
         name: g8 still energy
+  - platform: template
+    id: sys_esp_temperature
+    name: ESP Temperature
+    lambda: return temperatureRead();
+    unit_of_measurement: °C
+    device_class: TEMPERATURE
+    update_interval: 30s
+    entity_category: "diagnostic"
+  - platform: uptime
+    name: Uptime
+    id: sys_uptime
+    update_interval: 10s
+  - platform: wifi_signal 
+    name: RSSI
+    id: wifi_signal_db
+    update_interval: 1s
+    entity_category: "diagnostic"
 
 switch:
   - platform: ld2410
     engineering_mode:
       name: "engineering mode"
     bluetooth:
-      name: "control bluetooth"
+      name: "bluetooth"
 
 number:
   - platform: ld2410
@@ -171,9 +187,12 @@ button:
     factory_reset:
       name: "factory reset"
     restart:
-      name: "restart"
+      name: "restart_ld2410"
     query_params:
       name: query params
+  - platform: restart
+    icon: mdi:power-cycle
+    name: "ESP Reboot"
 
 text_sensor:
   - platform: ld2410
@@ -192,3 +211,12 @@ select:
       name: light function
     out_pin_level:
       name: out pin level
+
+light:
+  - platform: status_led
+    name: sys_status
+    pin: 
+      number: GPIO8
+      inverted: True
+    internal: True
+    restore_mode: ALWAYS_OFF
