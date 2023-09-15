@@ -9,7 +9,27 @@ substitutions:
   wifi_pass: !secret wifi_password
 
 packages:
-  remote_package:
-    url: https://github.com/FriedCheese2006/HomeAssistant/tree/main/ESPHome/ESP32_Micro_Radar
-    files: [ESP32_Micro_Radar.yaml]
-    refresh: 1d # optional
+  micro_radar: github://FriedCheese2006/HomeAssistant/ESPHome/ESP32_Micro_Radar/ESP32_Micro_Radar.yaml
+
+### No modifications needed below here ###
+####################################################################################
+
+esphome:
+  name: $name
+  friendly_name: $friendly_name
+  platformio_options:
+    board_build.flash_mode: dio
+  name_add_mac_suffix: false
+
+wifi:
+  ssid: $wifi
+  password: $wifi_pass
+  power_save_mode: NONE
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Micro Radar"
+
+captive_portal:
+
+web_server:
+  port: 80
