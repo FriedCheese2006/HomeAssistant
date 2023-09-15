@@ -4,6 +4,19 @@ esphome:
   platformio_options:
     board_build.flash_mode: dio
 
+wifi:
+  ssid: $wifi
+  password: $wifi_pass
+  power_save_mode: NONE
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Micro Radar"
+
+captive_portal:
+
+web_server:
+  port: 80
+
 esp32:
   board: lolin_c3_mini
   framework:

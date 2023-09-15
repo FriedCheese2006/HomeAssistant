@@ -20,16 +20,3 @@ esphome:
   platformio_options:
     board_build.flash_mode: dio
   name_add_mac_suffix: false
-
-wifi:
-  ssid: $wifi
-  password: $wifi_pass
-  power_save_mode: NONE
-  # Enable fallback hotspot (captive portal) in case wifi connection fails
-  ap:
-    ssid: "Micro Radar"
-
-captive_portal:
-
-web_server:
-  port: 80
