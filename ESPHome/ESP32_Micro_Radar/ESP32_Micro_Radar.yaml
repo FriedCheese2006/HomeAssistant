@@ -4,7 +4,7 @@ wifi:
   power_save_mode: NONE
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
-    ssid: "Micro Radar"
+    ssid: "$friendly_name Fallback"
 
 captive_portal:
 
