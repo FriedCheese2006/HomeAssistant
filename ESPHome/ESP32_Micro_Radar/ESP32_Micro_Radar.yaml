@@ -1,9 +1,3 @@
-esphome:
-  name: $name
-  friendly_name: $friendly_name
-  platformio_options:
-    board_build.flash_mode: dio
-
 wifi:
   ssid: $wifi
   password: $wifi_pass
