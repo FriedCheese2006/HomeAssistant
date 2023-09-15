@@ -1,0 +1,15 @@
+substitutions:
+  # Set the device name
+  name: devicename
+  # Set the friendly name
+  friendly_name: friendly
+  # Provide the wifi SSID
+  wifi: !secret wifi_ssid
+  #Provide the wifi password
+  wifi_pass: !secret wifi_password
+
+packages:
+  remote_package:
+    url: https://github.com/FriedCheese2006/HomeAssistant/tree/main/ESPHome
+    files: [ESP32_Micro_Radar.yaml]
+    refresh: 1d # optional
