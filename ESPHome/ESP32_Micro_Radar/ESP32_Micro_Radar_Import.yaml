@@ -10,6 +10,6 @@ substitutions:
 
 packages:
   remote_package:
-    url: https://github.com/FriedCheese2006/HomeAssistant/tree/main/ESPHome
+    url: https://github.com/FriedCheese2006/HomeAssistant/tree/main/ESPHome/ESP32_Micro_Radar
     files: [ESP32_Micro_Radar.yaml]
     refresh: 1d # optional
