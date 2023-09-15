@@ -1,9 +1,3 @@
-substitutions:
-  # Set the device name
-  name: devicename
-  # Set the friendly name
-  friendly_name: friendly
-
 esphome:
   name: $name
   friendly_name: $friendly_name
@@ -19,9 +13,12 @@ api:
 
 ota:
 
+logger:
+  level: DEBUG
+
 wifi:
-  ssid: !secret wifi_ssid
-  password: !secret wifi_password
+  ssid: $wifi
+  password: $wifi_pass
   power_save_mode: NONE
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
