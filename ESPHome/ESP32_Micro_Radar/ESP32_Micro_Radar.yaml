@@ -101,10 +101,8 @@ sensor:
         name: g8 move energy
       still_energy:
         name: g8 still energy
-  - platform: template
-    id: sys_esp_temperature
+  - platform: internal_temperature
     name: ESP Temperature
-    lambda: return temperatureRead();
     unit_of_measurement: °C
     device_class: TEMPERATURE
     update_interval: 30s
