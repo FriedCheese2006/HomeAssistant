@@ -1,9 +1,10 @@
 wifi:
   ssid: $wifi
   password: $wifi_pass
-  power_save_mode: NONE
+  power_save_mode: LIGHT
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
+  output_power: 15db
 
 captive_portal:
 
@@ -40,12 +41,12 @@ binary_sensor:
     has_still_target:
       name: Still Target
     out_pin_presence_status:
-      name: out pin presence status
+      name: Out Pin Presence Status
 
 sensor:
   - platform: ld2410
     light:
-      name: light
+      name: Light
     moving_distance:
       name : Moving Distance
     still_distance:
@@ -112,28 +113,28 @@ sensor:
     id: sys_uptime
     update_interval: 10s
   - platform: wifi_signal 
-    name: RSSI
+    name: WiFi RSSI
     id: wifi_signal_db
-    update_interval: 1s
+    update_interval: 30s
     entity_category: "diagnostic"
 
 switch:
   - platform: ld2410
     engineering_mode:
-      name: "engineering mode"
+      name: "LD2410 Engineering Mode"
     bluetooth:
-      name: "bluetooth"
+      name: "LD2410 bluetooth"
 
 number:
   - platform: ld2410
     timeout:
-      name: timeout
+      name: Timeout
     light_threshold:
-      name: light threshold
+      name: Light Threshold
     max_move_distance_gate:
-      name: max move distance gate
+      name: Max Move Distance Gate
     max_still_distance_gate:
-      name: max still distance gate
+      name: Max Still Distance Gate
     g0:
       move_threshold:
         name: g0 move threshold
@@ -183,11 +184,11 @@ number:
 button:
   - platform: ld2410
     factory_reset:
-      name: "factory reset"
+      name: "LD2410 Factory Reset"
     restart:
-      name: "restart_ld2410"
+      name: "LD2410 Reboot"
     query_params:
-      name: query params
+      name: "LD2410 Query Params"
   - platform: restart
     icon: mdi:power-cycle
     name: "ESP Reboot"
@@ -195,20 +196,20 @@ button:
 text_sensor:
   - platform: ld2410
     version:
-      name: "firmware version"
+      name: "LD2410 Firmware Version"
     mac_address:
-      name: "mac address"
+      name: "LD2410 MAC Address"
 
 select:
   - platform: ld2410
     distance_resolution:
-      name: "distance resolution"
+      name: "Distance Resolution"
     baud_rate:
-      name: "baud rate"
+      name: "Baud Rate"
     light_function:
-      name: light function
+      name: Light Function
     out_pin_level:
-      name: out pin level
+      name: Out Pin Level
 
 light:
   - platform: status_led

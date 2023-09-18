@@ -19,4 +19,5 @@ esphome:
   friendly_name: $friendly_name
   platformio_options:
     board_build.flash_mode: dio
+    board_build.f_cpu: 80000000L
   name_add_mac_suffix: false
