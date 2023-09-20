@@ -9,7 +9,7 @@ substitutions:
   wifi_pass: !secret wifi_password
 
 packages:
-  micro_radar: github://FriedCheese2006/HomeAssistant/ESPHome/ESP32_Micro_Radar/ESP32_Micro_Radar.yaml
+  micro_radar: github://FriedCheese2006/HomeAssistant/ESPHome/ESP32_Micro_Radar/ESP32_S2/ESP32_Mini_Radar.yaml
 
 ### No modifications needed below here ###
 ####################################################################################
