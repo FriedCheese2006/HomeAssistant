@@ -7,6 +7,8 @@ substitutions:
   wifi: !secret wifi_ssid
   #Provide the wifi password
   wifi_pass: !secret wifi_password
+  #Provide an OTA password:
+  ota_pass: "trustbutverifywalkingwithabigstick"
 
 packages:
   micro_radar: github://FriedCheese2006/HomeAssistant/ESPHome/ESP32_Micro_Radar/ESP32_C3/ESP32_Micro_Radar.yaml

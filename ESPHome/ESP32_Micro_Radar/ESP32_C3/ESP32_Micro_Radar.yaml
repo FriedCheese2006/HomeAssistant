@@ -19,6 +19,7 @@ esp32:
 api:
 
 ota:
+  password: $ota_pass
 
 logger:
   level: DEBUG
