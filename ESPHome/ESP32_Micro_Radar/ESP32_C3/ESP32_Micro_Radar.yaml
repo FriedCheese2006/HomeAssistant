@@ -4,7 +4,6 @@ wifi:
   power_save_mode: LIGHT
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
-  output_power: 15db
 
 captive_portal:
 
