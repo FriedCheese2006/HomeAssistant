@@ -124,7 +124,7 @@ switch:
     engineering_mode:
       name: "LD2410 Engineering Mode"
     bluetooth:
-      name: "LD2410 bluetooth"
+      name: "LD2410 Bluetooth"
 
 number:
   - platform: ld2410
