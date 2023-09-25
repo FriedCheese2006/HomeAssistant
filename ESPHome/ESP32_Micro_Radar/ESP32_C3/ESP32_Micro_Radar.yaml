@@ -1,7 +1,7 @@
 wifi:
   ssid: $wifi
   password: $wifi_pass
-  power_save_mode: NONE
+  power_save_mode: LIGHT
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
 
