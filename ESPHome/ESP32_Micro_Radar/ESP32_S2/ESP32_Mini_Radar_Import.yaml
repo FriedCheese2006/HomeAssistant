@@ -11,7 +11,10 @@ substitutions:
   ota_pass: "trustbutverifywalkingwithabigstick"
 
 packages:
-  micro_radar: github://FriedCheese2006/HomeAssistant/ESPHome/ESP32_Micro_Radar/ESP32_S2/ESP32_Mini_Radar.yaml
+  micro_radar:
+    url: https://github.com/FriedCheese2006/HomeAssistant
+    file: ESPHome/ESP32_Micro_Radar/ESP32_S2/ESP32_Mini_Radar.yaml
+    refresh: 1h
 
 ### No modifications needed below here ###
 ####################################################################################
