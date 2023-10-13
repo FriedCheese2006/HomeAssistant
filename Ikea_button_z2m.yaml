@@ -1,0 +1,47 @@
+blueprint:
+  name: Cover control with Tradfri open/close remote
+  description: |
+    Control a cover with an Ikea Tradfri open/close button remote over ZHA
+
+    Short press on ☼ button will open the cover.
+    Short press on ☰ button will close the cover.
+    Long press on ☼ or ☰  will stop the cover.
+  domain: automation
+  input:
+    remote:
+      name: Remote
+      description: "IKEA open/close remote to use"
+      selector:
+        entity:
+          integration: mqtt
+          domain: sensor
+    cover:
+      name: Cover
+      description: The cover to control
+      selector:
+        target:
+          entity:
+            domain: cover
+trigger:
+  - platform: state
+    entity_id: !input remote
+action:
+  - variables:  
+      command: " {{ trigger.to_state.state }} "
+  - choose:
+    - conditions:
+      - '{{ command == "open" }}'
+      sequence:
+      - service: cover.open_cover
+        target: !input cover
+    - conditions:
+      - '{{ command == "close" }}'
+      sequence:
+      - service: cover.close_cover
+        target: !input cover
+    - conditions:
+      - '{{ command in ("stop", "stop_opening", "stop_closing") }}'
+      sequence:
+      - service: cover.stop_cover
+        target: !input cover
+mode: single
