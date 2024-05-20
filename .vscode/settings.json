@@ -1,5 +1,6 @@
 {
     "files.associations": {
         "*.yaml": "home-assistant"
-    }
+    },
+    "vscode-home-assistant.ignoreCertificates": true
 }

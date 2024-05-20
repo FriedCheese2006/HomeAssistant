@@ -1,0 +1,207 @@
+automation:
+  - id: '123'
+    alias: Update Uber Eats Sensor
+    description: ''
+    trigger:
+    - platform: state
+      entity_id:
+      - binary_sensor.uber_eats_has_new_order
+      from: 'off'
+      to: 'on'
+      id: orderOn
+    - platform: state
+      entity_id:
+      - binary_sensor.uber_eats_has_new_order
+      from: 'on'
+      to: 'off'
+      id: orderOff
+    condition: []
+    action:
+    - choose:
+      - conditions:
+        - condition: trigger
+          id:
+          - orderOn
+        sequence:
+        - service: automation.turn_on
+          data: {}
+          target:
+            entity_id: automation.uber_eats_order_in_progress
+      - conditions:
+        - condition: trigger
+          id:
+          - orderOff
+        sequence:
+        - service: automation.turn_off
+          data:
+            stop_actions: true
+          target:
+            entity_id: automation.uber_eats_order_in_progress
+  - id: '456'
+    alias: Uber Eats Order In Progress
+    description: ''
+    trigger:
+    - platform: time_pattern
+      seconds: '30'
+    condition: []
+    action:
+    - service: homeassistant.update_entity
+      metadata: {}
+      data: {}
+      target:
+        entity_id: sensor.uber_eats_orders_json
+    mode: single
+  - id: '789'
+    alias: Uber Eats Phases
+    description: ""
+    trigger:
+      - platform: state
+        entity_id:
+          - sensor.uber_eats_status_desc
+        to: Almost here!
+        id: arriving
+      - platform: state
+        entity_id:
+          - sensor.uber_eats_status_desc
+        to: Heading your way…
+        id: enroute
+      - platform: state
+        entity_id:
+          - sensor.uber_eats_status_desc
+        to: Preparing your order…
+        id: ordered
+    condition: []
+    action:
+      - choose:
+          - conditions:
+              - condition: trigger
+                id:
+                  - ordered
+            sequence:
+              - service: input_boolean.turn_on
+                metadata: {}
+                data: {}
+                target:
+                  entity_id: input_boolean.uber_ordered
+          - conditions:
+              - condition: trigger
+                id:
+                  - enroute
+            sequence:
+              - service: input_boolean.turn_on
+                metadata: {}
+                data: {}
+                target:
+                  entity_id: input_boolean.uber_otw
+          - conditions:
+              - condition: trigger
+                id:
+                  - arriving
+            sequence:
+              - service: input_boolean.turn_on
+                metadata: {}
+                data: {}
+                target:
+                  entity_id: input_boolean.uber_arrived
+    mode: single
+  - id: '1011'
+    alias: Uber Eats Phases Reset
+    description: ""
+    trigger:
+      - platform: state
+        entity_id:
+          - sensor.uber_eats_orders_count
+        to: "0"
+        id: done
+    condition: []
+    action:
+      - service: input_boolean.turn_off
+        data: {}
+        target:
+          entity_id:
+            - input_boolean.uber_ordered
+            - input_boolean.uber_otw
+            - input_boolean.uber_arrived
+    mode: single
+
+sensor:
+  - platform: rest
+    name: Uber Eats Orders Count
+    resource: https://www.ubereats.com/api/getActiveOrdersV1
+    method: POST
+    headers:
+      Content-Type: application/json
+      X-CSRF-Token: x
+      Cookie: !secret uberCookie
+    payload: '{"timezone":"America/New_York"}'
+    force_update: true
+    value_template: >
+      {{ value_json.data.orders | count }}
+    unit_of_measurement: 'orders'
+    scan_interval: 60
+  - platform: rest
+    name: Uber Eats Orders JSON
+    unique_id: uber_eats_orders_json
+    json_attributes:
+      - feedCards
+      - activeOrderOverview
+      - contacts
+      - backgroundFeedCards
+    json_attributes_path: "$.data.orders[0]"
+    resource: https://www.ubereats.com/api/getActiveOrdersV1
+    method: POST
+    headers:
+      Content-Type: application/json
+      X-CSRF-Token: x
+      Cookie: !secret uberCookie
+    payload: '{"timezone":"America/New_York"}'
+    force_update: true
+    value_template: >-
+      {{ now() }}
+    scan_interval: 86400
+  - platform: template
+    sensors:
+      uber_eats_order:
+        value_template: >-
+          {{ now() }}
+        attribute_templates:
+          eta: >-
+            {{ state_attr("sensor.uber_eats_orders_json", "feedCards")[0].status.title if not is_state("sensor.uber_eats_orders_json",'N/A') else "N/A"}}
+          latest_arrival: >-
+            {{ state_attr("sensor.uber_eats_orders_json", "feedCards")[0].status.statusSummary.text.replace("Latest arrival by ", "") if not is_state("sensor.uber_eats_orders_json",'N/A') else "N/A" }}
+          order_status_description: >-
+            {{ state_attr("sensor.uber_eats_orders_json", "feedCards")[0].status.titleSummary.summary.text if not is_state("sensor.uber_eats_orders_json",'N/A') else "N/A" }}
+          order_status: >-
+            {{ state_attr("sensor.uber_eats_orders_json", "feedCards")[0].status.currentProgress if not is_state("sensor.uber_eats_orders_json",'N/A') else "N/A" }}  
+          restaurant_name: >-
+            {{ state_attr("sensor.uber_eats_orders_json", "activeOrderOverview").title if not is_state("sensor.uber_eats_orders_json",'N/A') else "N/A" }}
+          latitude: >-
+            {{ state_attr("sensor.uber_eats_orders_json", "backgroundFeedCards")[0].mapEntity[0].latitude|float if not is_state("sensor.uber_eats_orders_json", 'N/A') else "N/A" }}
+          longitude: >-
+            {{ state_attr("sensor.uber_eats_orders_json", "backgroundFeedCards")[0].mapEntity[0].longitude|float if not is_state("sensor.uber_eats_orders_json", 'N/A') else "N/A" }}
+      uber_eats_readable_eta:
+        friendly_name: 'Uber Eats Order Readable ETA'
+        value_template: '{{ state_attr("sensor.uber_eats_order","eta") }}'
+      uber_eats_status_desc:
+        friendly_name: 'Uber Eats Order Status Description'
+        value_template: '{{ state_attr("sensor.uber_eats_order","order_status_description") }}'
+
+binary_sensor:
+  - platform: template
+    sensors:
+      uber_eats_has_new_order:
+        friendly_name: "Uber Eats has a new order"
+        value_template: >
+          {% set orders_count = states("sensor.uber_eats_orders_count") | int(0) %}
+          {{ orders_count != 'unknown' and orders_count > 0 }}
+
+input_boolean:
+  uber_ordered:
+    name: Uber Order Submitted
+    icon: mdi:food-fork-drink
+  uber_otw:
+    name: Uber Order OTW
+    icon: mdi:food-fork-drink
+  uber_arrived:
+    name: Uber Order Arrived
+    icon: mdi:food-fork-drink
