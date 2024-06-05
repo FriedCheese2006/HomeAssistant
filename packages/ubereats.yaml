@@ -1,20 +1,24 @@
 automation:
   - id: '123'
-    alias: Update Uber Eats Sensor
+    alias: Update UE Sensor
     description: ''
     trigger:
     - platform: state
       entity_id:
-      - binary_sensor.uber_eats_has_new_order
+      - binary_sensor.ue_has_new_order
       from: 'off'
       to: 'on'
       id: orderOn
     - platform: state
       entity_id:
-      - binary_sensor.uber_eats_has_new_order
+      - binary_sensor.ue_has_new_order
       from: 'on'
       to: 'off'
       id: orderOff
+      for:
+        hours: 0
+        minutes: 2
+        seconds: 0
     condition: []
     action:
     - choose:
@@ -26,7 +30,7 @@ automation:
         - service: automation.turn_on
           data: {}
           target:
-            entity_id: automation.uber_eats_order_in_progress
+            entity_id: automation.ue_order_in_progress
       - conditions:
         - condition: trigger
           id:
@@ -36,9 +40,9 @@ automation:
           data:
             stop_actions: true
           target:
-            entity_id: automation.uber_eats_order_in_progress
+            entity_id: automation.ue_order_in_progress
   - id: '456'
-    alias: Uber Eats Order In Progress
+    alias: UE Order In Progress
     description: ''
     trigger:
     - platform: time_pattern
@@ -49,25 +53,25 @@ automation:
       metadata: {}
       data: {}
       target:
-        entity_id: sensor.uber_eats_orders_json
+        entity_id: sensor.ue_order_json
     mode: single
   - id: '789'
-    alias: Uber Eats Phases
+    alias: UE Phases
     description: ""
     trigger:
       - platform: state
         entity_id:
-          - sensor.uber_eats_status_desc
+          - sensor.ue_status_desc
         to: Almost here!
         id: arriving
       - platform: state
         entity_id:
-          - sensor.uber_eats_status_desc
+          - sensor.ue_status_desc
         to: Heading your way…
         id: enroute
       - platform: state
         entity_id:
-          - sensor.uber_eats_status_desc
+          - sensor.ue_status_desc
         to: Preparing your order…
         id: ordered
     condition: []
@@ -105,14 +109,18 @@ automation:
                   entity_id: input_boolean.uber_arrived
     mode: single
   - id: '1011'
-    alias: Uber Eats Phases Reset
+    alias: UE Phases Reset
     description: ""
     trigger:
       - platform: state
         entity_id:
-          - sensor.uber_eats_orders_count
-        to: "0"
+          - sensor.ue_order_count
+        to: "No Orders"
         id: done
+        for:
+          hours: 0
+          minutes: 5
+          seconds: 0 
     condition: []
     action:
       - service: input_boolean.turn_off
@@ -126,7 +134,8 @@ automation:
 
 sensor:
   - platform: rest
-    name: Uber Eats Orders Count
+    unique_id: ue_order_count
+    name: UE Order Count
     resource: https://www.ubereats.com/api/getActiveOrdersV1
     method: POST
     headers:
@@ -136,12 +145,15 @@ sensor:
     payload: '{"timezone":"America/New_York"}'
     force_update: true
     value_template: >
-      {{ value_json.data.orders | count }}
-    unit_of_measurement: 'orders'
+      {% if value_json.data.orders | count == 0 %}
+        {{ "No Orders" }}
+      {% else %}
+        {{ value_json.data.orders | count }}
+      {% endif %}
     scan_interval: 60
   - platform: rest
-    name: Uber Eats Orders JSON
-    unique_id: uber_eats_orders_json
+    unique_id: ue_order_json
+    name: UE Order JSON
     json_attributes:
       - feedCards
       - activeOrderOverview
@@ -157,51 +169,93 @@ sensor:
     payload: '{"timezone":"America/New_York"}'
     force_update: true
     value_template: >-
-      {{ now() }}
+      {% if not is_state('sensor.ue_order_count',['Unknown','Unavailable','No Orders']) %}
+        {{ value_json.data.orders[0].feedCards[0].status.currentProgress }}
+      {% else %}
+        {{ 'No Orders' }}
+      {% endif %}
     scan_interval: 86400
   - platform: template
-    sensors:
-      uber_eats_order:
+    sensors:   
+      ue_status_desc:
+        friendly_name: 'UE Order Status'
+        unique_id: ue_status_desc
         value_template: >-
-          {{ now() }}
+          {{ state_attr("sensor.ue_order_json", "feedCards")[0].status.titleSummary.summary.text if not is_state("sensor.ue_order_json",['Unknown','Unavailable','No Orders']) else "No Orders" }}
+      ue_eta:
+        friendly_name: "UE ETA"
+        unique_id: ue_eta
+        value_template: >-
+          {% if not is_state("sensor.ue_order_json",['Unknown','Unavailable','No Orders']) %}
+            {% set time_str = state_attr("sensor.ue_order_json", "feedCards")[0].status.subtitleSummary.summary.text.replace("Estimated arrival ", "")  %}
+            {% set today = now().date() %}
+            {% set today_str = today.strftime("%Y-%m-%d") %}
+            {% set datetime_str = today_str + " " + time_str %}
+            {% set timestamp = strptime(datetime_str, "%Y-%m-%d %I:%M %p") %}
+            {{ timestamp }}
+          {% else %}
+              {{ "No Orders" }}
+          {% endif %}
+      ue_latest_arrival:
+        friendly_name: "UE Latest Arrival"
+        unique_id: ue_latest_arrival
+        value_template: >-
+          {% if not is_state("sensor.ue_order_json",['Unknown','Unavailable','No Orders']) %}
+            {% if state_attr("sensor.ue_order_json", "feedCards")[0].status.statusSummary.text %}
+              {% set time_str = state_attr("sensor.ue_order_json", "feedCards")[0].status.statusSummary.text.replace("Latest arrival by ", "")  %}
+              {% set today = now().date() %}
+              {% set today_str = today.strftime("%Y-%m-%d") %}
+              {% set datetime_str = today_str + " " + time_str %}
+              {% set timestamp = strptime(datetime_str, "%Y-%m-%d %I:%M %p") %}
+              {{ timestamp }}
+            {% else %}
+              {{ "No Time Set"}}
+            {% endif %}
+          {% else %}
+              {{ "No Orders" }}
+          {% endif %}
+      ue_courier_info:
+        friendly_name: "UE Courier Info"
+        unique_id: ue_courier_info
+        value_template: >-
+          {% if not is_state("sensor.ue_order_json",['Unknown','Unavailable','No Orders']) %}
+            {% if state_attr("sensor.ue_order_json", "contacts") %}
+              {{state_attr("sensor.ue_order_json", "contacts")[0].title}}
+            {% else %}
+              {{ 'No Driver Assigned' }}
+            {% endif %}
+          {% else %}
+            {{ 'No Orders' }}
+          {% endif %}
         attribute_templates:
-          eta: >-
-            {{ state_attr("sensor.uber_eats_orders_json", "feedCards")[0].status.title if not is_state("sensor.uber_eats_orders_json",'N/A') else "N/A"}}
-          latest_arrival: >-
-            {{ state_attr("sensor.uber_eats_orders_json", "feedCards")[0].status.statusSummary.text.replace("Latest arrival by ", "") if not is_state("sensor.uber_eats_orders_json",'N/A') else "N/A" }}
-          order_status_description: >-
-            {{ state_attr("sensor.uber_eats_orders_json", "feedCards")[0].status.titleSummary.summary.text if not is_state("sensor.uber_eats_orders_json",'N/A') else "N/A" }}
-          order_status: >-
-            {{ state_attr("sensor.uber_eats_orders_json", "feedCards")[0].status.currentProgress if not is_state("sensor.uber_eats_orders_json",'N/A') else "N/A" }}  
-          restaurant_name: >-
-            {{ state_attr("sensor.uber_eats_orders_json", "activeOrderOverview").title if not is_state("sensor.uber_eats_orders_json",'N/A') else "N/A" }}
           latitude: >-
-            {{ state_attr("sensor.uber_eats_orders_json", "backgroundFeedCards")[0].mapEntity[0].latitude|float if not is_state("sensor.uber_eats_orders_json", 'N/A') else "N/A" }}
+            {{ state_attr("sensor.ue_order_json", "backgroundFeedCards")[0].mapEntity[0].latitude|float if not is_state("sensor.ue_order_json",['Unknown','Unavailable','No Orders']) else "No Orders" }}
           longitude: >-
-            {{ state_attr("sensor.uber_eats_orders_json", "backgroundFeedCards")[0].mapEntity[0].longitude|float if not is_state("sensor.uber_eats_orders_json", 'N/A') else "N/A" }}
-      uber_eats_readable_eta:
-        friendly_name: 'Uber Eats Order Readable ETA'
-        value_template: '{{ state_attr("sensor.uber_eats_order","eta") }}'
-      uber_eats_status_desc:
-        friendly_name: 'Uber Eats Order Status Description'
-        value_template: '{{ state_attr("sensor.uber_eats_order","order_status_description") }}'
+            {{ state_attr("sensor.ue_order_json", "backgroundFeedCards")[0].mapEntity[0].longitude|float if not is_state("sensor.ue_order_json",['Unknown','Unavailable','No Orders']) else "No Orders" }}
+      restaurant_name: 
+        friendly_name: "UE Resturant Name"
+        unique_id: restaurant_name
+        value_template: >-
+          {{ state_attr("sensor.ue_order_json", "activeOrderOverview").title if not is_state("sensor.ue_order_json",['Unknown','Unavailable','No Orders']) else "No Orders" }}
+
 
 binary_sensor:
   - platform: template
     sensors:
-      uber_eats_has_new_order:
-        friendly_name: "Uber Eats has a new order"
+      ue_has_new_order:
+        friendly_name: "UE has a new order"
+        unique_id: ue_has_new_order
         value_template: >
-          {% set orders_count = states("sensor.uber_eats_orders_count") | int(0) %}
-          {{ orders_count != 'unknown' and orders_count > 0 }}
+          {% set orders_count = states("sensor.ue_order_count") | int(0) %}
+          {{ orders_count != ['unknown','No Orders'] and orders_count > 0 }}
 
 input_boolean:
-  uber_ordered:
-    name: Uber Order Submitted
+  ue_ordered:
+    name: UE Order Submitted
     icon: mdi:food-fork-drink
-  uber_otw:
-    name: Uber Order OTW
+  ue_otw:
+    name: UE Order OTW
     icon: mdi:food-fork-drink
-  uber_arrived:
-    name: Uber Order Arrived
+  ue_arrived:
+    name: UE Order Arrived
     icon: mdi:food-fork-drink
