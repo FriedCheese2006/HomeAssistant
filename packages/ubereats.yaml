@@ -1,6 +1,6 @@
 automation:
   - id: '123'
-    alias: Update UE Sensor
+    alias: UE Sensor Update
     description: ''
     trigger:
     - platform: state
@@ -72,7 +72,9 @@ automation:
       - platform: state
         entity_id:
           - sensor.ue_status_desc
-        to: Preparing your order…
+        to: 
+          - Preparing your order…
+          - Picking up your order…
         id: ordered
     condition: []
     action:
@@ -86,7 +88,7 @@ automation:
                 metadata: {}
                 data: {}
                 target:
-                  entity_id: input_boolean.uber_ordered
+                  entity_id: input_boolean.ue_ordered
           - conditions:
               - condition: trigger
                 id:
@@ -96,7 +98,7 @@ automation:
                 metadata: {}
                 data: {}
                 target:
-                  entity_id: input_boolean.uber_otw
+                  entity_id: input_boolean.ue_otw
           - conditions:
               - condition: trigger
                 id:
@@ -106,7 +108,7 @@ automation:
                 metadata: {}
                 data: {}
                 target:
-                  entity_id: input_boolean.uber_arrived
+                  entity_id: input_boolean.ue_arrived
     mode: single
   - id: '1011'
     alias: UE Phases Reset
@@ -127,9 +129,9 @@ automation:
         data: {}
         target:
           entity_id:
-            - input_boolean.uber_ordered
-            - input_boolean.uber_otw
-            - input_boolean.uber_arrived
+            - input_boolean.ue_ordered
+            - input_boolean.ue_otw
+            - input_boolean.ue_arrived
     mode: single
 
 sensor:
@@ -175,69 +177,89 @@ sensor:
         {{ 'No Orders' }}
       {% endif %}
     scan_interval: 86400
-  - platform: template
-    sensors:   
-      ue_status_desc:
-        friendly_name: 'UE Order Status'
-        unique_id: ue_status_desc
-        value_template: >-
-          {{ state_attr("sensor.ue_order_json", "feedCards")[0].status.titleSummary.summary.text if not is_state("sensor.ue_order_json",['Unknown','Unavailable','No Orders']) else "No Orders" }}
-      ue_eta:
-        friendly_name: "UE ETA"
-        unique_id: ue_eta
-        value_template: >-
-          {% if not is_state("sensor.ue_order_json",['Unknown','Unavailable','No Orders']) %}
-            {% set time_str = state_attr("sensor.ue_order_json", "feedCards")[0].status.subtitleSummary.summary.text.replace("Estimated arrival ", "")  %}
-            {% set today = now().date() %}
-            {% set today_str = today.strftime("%Y-%m-%d") %}
-            {% set datetime_str = today_str + " " + time_str %}
-            {% set timestamp = strptime(datetime_str, "%Y-%m-%d %I:%M %p") %}
-            {{ timestamp }}
-          {% else %}
-              {{ "No Orders" }}
-          {% endif %}
-      ue_latest_arrival:
-        friendly_name: "UE Latest Arrival"
-        unique_id: ue_latest_arrival
-        value_template: >-
-          {% if not is_state("sensor.ue_order_json",['Unknown','Unavailable','No Orders']) %}
+
+template:
+  - sensor:
+    - unique_id: ue_status_desc
+      default_entity_id: sensor.ue_status_desc
+      name: UE Order Status
+      state: '{{ state_attr("sensor.ue_order_json", "feedCards")[0].status.titleSummary.summary.text
+        if not is_state("sensor.ue_order_json",[''Unknown'',''Unavailable'',''No Orders''])
+        else "No Orders" }}'
+  - sensor:
+    - unique_id: ue_eta
+      name: UE ETA
+      state: >
+        {% if states("sensor.ue_order_json") not in ["Unknown","Unavailable","No Orders"] %}
+          {% set time_str = state_attr("sensor.ue_order_json", "feedCards")[0].status.title %}
+          {% set parts = time_str.split(' - ') %}
+          {% set end_time = parts[-1] %}
+          {% set today = now().date() %}
+          {% set today_str = today.strftime("%Y-%m-%d") %}
+          {% set datetime_str = today_str + " " + end_time %}
+          {% set timestamp = strptime(datetime_str, "%Y-%m-%d %I:%M %p") %}
+          {{ timestamp }}
+        {% else %}
+          No Orders
+        {% endif %}
+  - sensor:
+      - unique_id: ue_latest_arrival
+        name: UE Latest Arrival
+        state: >
+          {% if states("sensor.ue_order_json") not in ["Unknown","Unavailable","No Orders"] %}
             {% if state_attr("sensor.ue_order_json", "feedCards")[0].status.statusSummary.text %}
-              {% set time_str = state_attr("sensor.ue_order_json", "feedCards")[0].status.statusSummary.text.replace("Latest arrival by ", "")  %}
+              {% set time_str = state_attr("sensor.ue_order_json", "feedCards")[0].status.statusSummary.text.replace("Latest arrival by ", "") %}
               {% set today = now().date() %}
               {% set today_str = today.strftime("%Y-%m-%d") %}
               {% set datetime_str = today_str + " " + time_str %}
               {% set timestamp = strptime(datetime_str, "%Y-%m-%d %I:%M %p") %}
               {{ timestamp }}
             {% else %}
-              {{ "No Time Set"}}
+              No Time Set
             {% endif %}
           {% else %}
-              {{ "No Orders" }}
+            No Orders
           {% endif %}
-      ue_courier_info:
-        friendly_name: "UE Courier Info"
-        unique_id: ue_courier_info
-        value_template: >-
-          {% if not is_state("sensor.ue_order_json",['Unknown','Unavailable','No Orders']) %}
+  - sensor:
+      - unique_id: ue_courier_info
+        name: UE Courier Info
+        state: >
+          {% if states("sensor.ue_order_json") not in ["Unknown","Unavailable","No Orders"] %}
             {% if state_attr("sensor.ue_order_json", "contacts") %}
-              {{state_attr("sensor.ue_order_json", "contacts")[0].title}}
+              {{ state_attr("sensor.ue_order_json", "contacts")[0].title }}
             {% else %}
-              {{ 'No Driver Assigned' }}
+              No Driver Assigned
             {% endif %}
           {% else %}
-            {{ 'No Orders' }}
+            No Orders
           {% endif %}
-        attribute_templates:
-          latitude: >-
-            {{ state_attr("sensor.ue_order_json", "backgroundFeedCards")[0].mapEntity[0].latitude|float if not is_state("sensor.ue_order_json",['Unknown','Unavailable','No Orders']) else "No Orders" }}
-          longitude: >-
-            {{ state_attr("sensor.ue_order_json", "backgroundFeedCards")[0].mapEntity[0].longitude|float if not is_state("sensor.ue_order_json",['Unknown','Unavailable','No Orders']) else "No Orders" }}
-      restaurant_name: 
-        friendly_name: "UE Resturant Name"
-        unique_id: restaurant_name
-        value_template: >-
-          {{ state_attr("sensor.ue_order_json", "activeOrderOverview").title if not is_state("sensor.ue_order_json",['Unknown','Unavailable','No Orders']) else "No Orders" }}
-
+        attributes:
+          latitude: >
+            {% if states("sensor.ue_order_json") not in ["Unknown","Unavailable","No Orders"]
+                  and state_attr("sensor.ue_order_json", "backgroundFeedCards")
+                  and state_attr("sensor.ue_order_json", "backgroundFeedCards")[0].mapEntity %}
+              {{ state_attr("sensor.ue_order_json", "backgroundFeedCards")[0].mapEntity[0].latitude | float }}
+            {% else %}
+              none
+            {% endif %}
+          longitude: >
+            {% if states("sensor.ue_order_json") not in ["Unknown","Unavailable","No Orders"]
+                  and state_attr("sensor.ue_order_json", "backgroundFeedCards")
+                  and state_attr("sensor.ue_order_json", "backgroundFeedCards")[0].mapEntity %}
+              {{ state_attr("sensor.ue_order_json", "backgroundFeedCards")[0].mapEntity[0].longitude | float }}
+            {% else %}
+              none
+            {% endif %}
+  - sensor:
+      - unique_id: ue_restaurant_name
+        name: UE Restaurant Name
+        state: >
+          {% if states("sensor.ue_order_json") not in ["Unknown","Unavailable","No Orders"]
+                and state_attr("sensor.ue_order_json", "activeOrderOverview") %}
+            {{ state_attr("sensor.ue_order_json", "activeOrderOverview").title }}
+          {% else %}
+            No Orders
+          {% endif %}
 
 binary_sensor:
   - platform: template
