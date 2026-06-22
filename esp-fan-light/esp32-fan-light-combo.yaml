@@ -1,0 +1,77 @@
+substitutions:
+  # Set the device name
+  name: devicename
+  # Set the friendly name
+  friendly_name: friendly
+  # Provide the wifi SSID
+  wifi: !secret wifi_ssid
+  #Provide the wifi password
+  wifi_pass: !secret wifi_password
+
+############################################
+esphome:
+  name: $name
+  friendly_name: $friendly_name
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: esp-idf
+
+logger:
+
+api:
+  reboot_timeout: 0s
+
+ota:
+- platform: esphome
+
+wifi:
+  networks:
+    - ssid: !secret wifi_ssid
+      password: !secret wifi_password
+
+output:
+  - platform: ledc
+    pin: GPIO05
+    id: fan_output
+    zero_means_zero: true
+  - platform: ledc
+    pin: GPIO03
+    id: light_output
+
+fan:
+  - platform: speed
+    id: manual_fan_control
+    output: fan_output
+    name: "Fan Speed"
+
+light:
+  - platform: monochromatic
+    name: "Light"
+    output: light_output
+
+sensor:
+  - platform: internal_temperature
+    name: ESP Temperature
+    unit_of_measurement: °C
+    device_class: TEMPERATURE
+    update_interval: 30s
+    entity_category: "diagnostic"
+  - platform: uptime
+    name: Uptime
+    id: sys_uptime
+    update_interval: 10s
+  - platform: wifi_signal 
+    name: WiFi RSSI
+    id: wifi_signal_db
+    update_interval: 30s
+    entity_category: "diagnostic"
+
+bluetooth_proxy:
+  active: true
+
+button:
+  - platform: restart
+    icon: mdi:power-cycle
+    name: "ESP Reboot"
